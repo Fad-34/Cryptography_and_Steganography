@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StegoShield</title>
+
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #15803d;
+            --danger: #b91c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        .page {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 24px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin: 6px 0 22px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            border: 1px solid var(--border);
+            background: #fff;
+            padding: 10px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .tab-button.active {
+            background: var(--text);
+            color: white;
+            border-color: var(--text);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 6px 20px rgba(17, 24, 39, 0.04);
+        }
+
+        .card + .card {
+            margin-top: 14px;
+        }
+
+        .card h2 {
+            margin: 0 0 16px;
+            font-size: 1.15rem;
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            border: 1px solid var(--border);
+            padding: 11px;
+            border-radius: 10px;
+            background: #f9fafb;
+        }
+
+        button.primary {
+            width: 100%;
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: white;
+            background: var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .preview-box {
+            min-height: 330px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            color: var(--muted);
+            background: #fafafa;
+        }
+
+        .preview-box img {
+            display: block;
+            max-width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+        }
+
+        .capacity {
+            margin: 12px 0 16px;
+        }
+
+        .bar {
+            height: 12px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 7px;
+        }
+
+        .bar > div {
+            height: 100%;
+            width: 0;
+            background: var(--primary);
+            transition: width 0.2s ease;
+        }
+
+        .status {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #f3f4f6;
+            white-space: pre-wrap;
+        }
+
+        .status.error {
+            color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .status.success {
+            color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .metric {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        footer {
+            color: var(--muted);
+            font-size: .9rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 760px) {
+            .preview-grid,
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-box {
+                min-height: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="page">
+    <header>
+        <h1>StegoShield</h1>
+        <p class="subtitle">
+            Hide complete files inside images using Least Significant Bit (LSB) steganography.
+        </p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-button active" data-tab="encode">Encode</button>
+        <button class="tab-button" data-tab="decode">Decode</button>
+        <button class="tab-button" data-tab="analysis">Analysis</button>
+    </div>
+
+    <section id="encode" class="tab-panel active">
+        <div class="card">
+            <h2>Create Stego Image</h2>
+
+            <form id="encodeForm">
+                <div class="field">
+                    <label for="cover">Cover image</label>
+                    <input
+                        id="cover"
+                        name="cover"
+                        type="file"
+                        accept=".png,.bmp,.tif,.tiff,.jpg,.jpeg"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="secret">Secret file</label>
+                    <input id="secret" name="secret" type="file" required>
+                </div>
+
+                <div class="capacity">
+                    <div id="capacityText">Capacity: —</div>
+                    <div class="bar"><div id="capacityBar"></div></div>
+                </div>
+
+                <button class="primary" type="submit">
+                    Hide Secret File
+                </button>
+            </form>
+
+            <div id="encodeStatus" class="status">Ready</div>
+        </div>
+
+        <div class="preview-grid">
+            <div class="card">
+                <h2>Cover Image</h2>
+                <div class="preview-box">
+                    <img id="coverPreview" hidden alt="Cover preview">
+                    <span id="coverPlaceholder">Select a cover image</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Stego Image</h2>
+                <div class="preview-box">
+                    <img id="stegoPreview" hidden alt="Stego preview">
+                    <span id="stegoPlaceholder">Stego image will appear here</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="decode" class="tab-panel">
+        <div class="card">
+            <h2>Extract Hidden File</h2>
+            <p class="subtitle">
+                Choose a stego PNG created by this application.
+                The original filename and data will be recovered.
+            </p>
+
+            <form id="decodeForm">
+                <div class="field">
+                    <label for="decodeStego">Stego image</label>
+                    <input
+                        id="decodeStego"
+                        name="stego"
+                        type="file"
+                        accept=".png"
+                        required
+                    >
+                </div>
+
+                <button class="primary" type="submit">
+                    Extract Hidden File
+                </button>
+            </form>
+
+            <div id="decodeStatus" class="status">
+                Extraction log will appear here.
+            </div>
+        </div>
+    </section>
+
+    <section id="analysis" class="tab-panel">
+        <div class="card">
+            <h2>Image Analysis</h2>
+            <p class="subtitle">
+                Compare cover and stego image file sizes and pixel/channel differences.
+            </p>
+
+            <form id="analysisForm">
+                <div class="field">
+                    <label for="analysisCover">Original cover image</label>
+                    <input id="analysisCover" name="cover" type="file" accept="image/*" required>
+                </div>
+
+                <div class="field">
+                    <label for="analysisStego">Stego image</label>
+                    <input id="analysisStego" name="stego" type="file" accept=".png" required>
+                </div>
+
+                <button class="primary" type="submit">
+                    Analyze Images
+                </button>
+            </form>
+
+            <div id="analysisStatus" class="status">
+                Choose both images to begin analysis.
+            </div>
+
+            <div id="analysisResults" class="analysis-grid" hidden></div>
+        </div>
+    </section>
+
+    <footer>
+        <span id="footerStatus">Ready</span>
+        <span>IKB 21303 • Assignment 2</span>
+    </footer>
+</div>
+
+<script>
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    tabButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            tabPanels.forEach(p => p.classList.remove("active"));
+
+            button.classList.add("active");
+            document.getElementById(button.dataset.tab).classList.add("active");
+        });
+    });
+
+    function setStatus(element, text, type = "") {
+        element.textContent = text;
+        element.className = "status" + (type ? " " + type : "");
+        document.getElementById("footerStatus").textContent = text.split("\n")[0];
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function filenameFromDisposition(header, fallback) {
+        if (!header) return fallback;
+
+        const utf = header.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf) return decodeURIComponent(utf[1]);
+
+        const normal = header.match(/filename="?([^"]+)"?/i);
+        return normal ? normal[1] : fallback;
+    }
+
+    const coverInput = document.getElementById("cover");
+    const secretInput = document.getElementById("secret");
+    const coverPreview = document.getElementById("coverPreview");
+    const coverPlaceholder = document.getElementById("coverPlaceholder");
+    const stegoPreview = document.getElementById("stegoPreview");
+    const stegoPlaceholder = document.getElementById("stegoPlaceholder");
+
+    coverInput.addEventListener("change", async () => {
+        const file = coverInput.files[0];
+        if (!file) return;
+
+        coverPreview.src = URL.createObjectURL(file);
+        coverPreview.hidden = false;
+        coverPlaceholder.hidden = true;
+
+        const form = new FormData();
+        form.append("cover", file);
+
+        try {
+            const res = await fetch("/capacity", {
+                method: "POST",
+                body: form
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Capacity check failed.");
+            }
+
+            let text = `Maximum payload capacity: ${data.capacity_text}`;
+
+            if (secretInput.files[0]) {
+                const required =
+                    secretInput.files[0].size +
+                    18 +
+                    new TextEncoder().encode(secretInput.files[0].name).length;
+
+                const pct = Math.min(100, required / data.capacity_bytes * 100);
+
+                text =
+                    `Payload usage: ${formatBytes(required)} / ` +
+                    `${data.capacity_text} (${pct.toFixed(1)}%)`;
+
+                document.getElementById("capacityBar").style.width =
+                    pct.toFixed(1) + "%";
+            } else {
+                document.getElementById("capacityBar").style.width = "0%";
+            }
+
+            document.getElementById("capacityText").textContent = text;
+
+        } catch (err) {
+            document.getElementById("capacityText").textContent = err.message;
+        }
+    });
+
+    secretInput.addEventListener("change", () => {
+        if (coverInput.files[0]) {
+            coverInput.dispatchEvent(new Event("change"));
+        }
+    });
+
+    function formatBytes(value) {
+        const units = ["B", "KB", "MB", "GB"];
+        let n = value;
+
+        for (const unit of units) {
+            if (n < 1024 || unit === "GB") {
+                return `${n.toFixed(2)} ${unit}`;
+            }
+            n /= 1024;
+        }
+    }
+
+    document.getElementById("encodeForm").addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const status = document.getElementById("encodeStatus");
+        setStatus(status, "Encoding image...");
+
+        try {
+            const res = await fetch("/encode", {
+                method: "POST",
+                body: new FormData(e.target)
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Encoding failed.");
+            }
+
+            const blob = await res.blob();
+
+            stegoPreview.src = URL.createObjectURL(blob);
+            stegoPreview.hidden = false;
+            stegoPlaceholder.hidden = true;
+
+            downloadBlob(blob, "stego.png");
+
+            setStatus(
+                status,
+                "Secret file hidden successfully.\nThe stego image has been downloaded.",
+                "success"
+            );
+
+        } catch (err) {
+            setStatus(status, err.message, "error");
+        }
+    });
+
+    document.getElementById("decodeForm").addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const status = document.getElementById("decodeStatus");
+        setStatus(status, "Extracting hidden file...");
+
+        try {
+            const res = await fetch("/decode", {
+                method: "POST",
+                body: new FormData(e.target)
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Extraction failed.");
+            }
+
+            const blob = await res.blob();
+            const filename = filenameFromDisposition(
+                res.headers.get("Content-Disposition"),
+                "extracted_file"
+            );
+
+            downloadBlob(blob, filename);
+
+            setStatus(
+                status,
+                `EXTRACTION SUCCESSFUL\nRecovered file: ${filename}`,
+                "success"
+            );
+
+        } catch (err) {
+            setStatus(status, err.message, "error");
+        }
+    });
+
+    document.getElementById("analysisForm").addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const status = document.getElementById("analysisStatus");
+        const results = document.getElementById("analysisResults");
+
+        setStatus(status, "Analyzing images...");
+        results.hidden = true;
+
+        try {
+            const res = await fetch("/analyze", {
+                method: "POST",
+                body: new FormData(e.target)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Analysis failed.");
+            }
+
+            const metrics = [
+                ["Dimensions", data.dimensions],
+                ["Cover size", data.cover_size],
+                ["Stego size", data.stego_size],
+                ["File-size change", `${data.size_difference >= 0 ? "+" : ""}${data.size_difference} bytes (${data.size_percent >= 0 ? "+" : ""}${data.size_percent}%)`],
+                ["Changed channels", `${data.changed_channels.toLocaleString()} / ${data.total_channels.toLocaleString()}`],
+                ["Changed percentage", `${data.changed_percent}%`],
+                ["Maximum channel change", data.max_channel_change],
+                ["Mean absolute change", `R=${data.mean_r}, G=${data.mean_g}, B=${data.mean_b}`]
+            ];
+
+            results.innerHTML = metrics.map(([label, value]) => `
+                <div class="metric">
+                    <strong>${label}</strong><br>
+                    <span>${value}</span>
+                </div>
+            `).join("");
+
+            results.hidden = false;
+
+            setStatus(
+                status,
+                "Analysis completed successfully.",
+                "success"
+            );
+
+        } catch (err) {
+            setStatus(status, err.message, "error");
+        }
+    });
+</script>
+</body>
+</html>
